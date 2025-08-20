@@ -12,6 +12,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Load local Zupiter font from public/fonts */
+@font-face {
+  font-family: "Zupiter";
+  src: url("/fonts/Zupiter.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -22,5 +31,16 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Prefer locally-served font, fall back to Geist variable then system fonts */
+  font-family: "Zupiter", var(--font-geist-sans, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Use Geist mono variable for monospaced elements */
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace);
 }
