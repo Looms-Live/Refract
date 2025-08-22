@@ -1,8 +1,32 @@
 @import "tailwindcss";
+@import "highlight.js/styles/github-dark.css";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+html, body {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  scroll-behavior: auto;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+}
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Lenis smooth scrolling optimization */
+html.lenis {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
 }
 
 @theme inline {
@@ -12,10 +36,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Load local Zupiter font from public/fonts */
+/* Load local font from public/fonts */
 @font-face {
-  font-family: "Zupiter";
-  src: url("/fonts/Zupiter.otf") format("opentype");
+  font-family: "crazy";
+  src: url("/fonts/crazy.TTF") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -32,7 +56,18 @@ body {
   background: var(--background);
   color: var(--foreground);
   /* Prefer locally-served font, fall back to Geist variable then system fonts */
-  font-family: "Zupiter", var(--font-geist-sans, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif);
+  font-family: "crazy",
+    var(
+      --font-geist-sans,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      "Noto Sans",
+      sans-serif
+    );
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -42,5 +77,25 @@ code,
 pre,
 kbd,
 samp {
-  font-family: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace);
+  font-family: var(
+    --font-geist-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    "Roboto Mono",
+    "Courier New",
+    monospace
+  );
+}
+
+.grid-background {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.4) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+::selection {
+  background: rgba(0, 0, 0, 1);
+  color: white;
 }
