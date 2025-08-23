@@ -30,3 +30,30 @@ Agentic AI that reads cdocuments (Google Drive, PDFs, emails) and delivers clear
 5. **Create Reports:** Summarizes insights into structured, actionable reports.
 
 ---
+
+## Quick Start ➤
+
+### 1. Environment Setup
+All environment variables are in `.env.local`. Update the following values:
+```bash
+# Required: Get from https://makersuite.google.com/app/apikey
+GEMINI_API_KEY=your-actual-gemini-api-key-here
+
+# Your Convex deployment info (already set)
+CONVEX_DEPLOYMENT=dev:proper-bandicoot-15
+NEXT_PUBLIC_CONVEX_URL=https://proper-bandicoot-15.convex.cloud
+
+# Generate a secure API key for backend
+API_KEY=your-secure-random-api-key-here
+```
+
+### 2. Install & Run
+```bash
+# Install dependencies
+npm install
+
+# Start development servers
+npm run dev
+```
+
+---

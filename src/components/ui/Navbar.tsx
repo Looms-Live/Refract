@@ -21,6 +21,9 @@ function Navbar() {
 
       {/* Navigation Links - Hidden on mobile */}
       <div className="hidden md:flex items-center space-x-8">
+        <Link href="/query" className="text-gray-600 hover:text-gray-900 font-medium">
+          Text to Query
+        </Link>
         <Link href="/labs" className="text-gray-600 hover:text-gray-900 font-medium">
           Blog
         </Link>
