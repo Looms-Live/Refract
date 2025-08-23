@@ -1,4 +1,5 @@
 
+
 "use client";
 import React, { useState } from "react";
 
@@ -24,13 +25,15 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 to-blue-900 flex flex-col items-center justify-center px-4 py-8">
-      <div className="w-full max-w-2xl bg-gray-900 rounded-xl shadow-lg p-6 flex flex-col gap-4">
-        <h1 className="text-3xl font-bold text-blue-400 mb-2 text-center">RefractAI Chat</h1>
-        <div className="flex flex-col gap-2 overflow-y-auto h-96 bg-gray-800 rounded-md p-4">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-8 relative">
+      {/* Grid Background */}
+      <div className="fixed inset-0 w-full h-full opacity-30 grid-background z-0"></div>
+      <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-xl shadow-lg p-6 flex flex-col gap-4 relative z-10">
+        <h1 className="text-3xl font-bold text-black mb-2 text-center">RefractAI Chat</h1>
+        <div className="flex flex-col gap-2 overflow-y-auto h-96 bg-gray-100 rounded-md p-4">
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`px-4 py-2 rounded-lg max-w-[80%] text-sm ${msg.role === "user" ? "bg-blue-600 text-white" : msg.role === "assistant" ? "bg-gray-700 text-blue-200" : "bg-gray-700 text-gray-400 italic"}`}>
+              <div className={`px-4 py-2 rounded-lg max-w-[80%] text-sm ${msg.role === "user" ? "bg-black text-white" : msg.role === "assistant" ? "bg-gray-200 text-black" : "bg-gray-100 text-gray-400 italic"}`}>
                 {msg.content}
               </div>
             </div>
@@ -39,7 +42,7 @@ export default function ChatPage() {
         <form onSubmit={handleSend} className="flex gap-2 mt-2">
           <input
             type="text"
-            className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-2 rounded-lg bg-gray-100 text-black border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
             placeholder="Type your question..."
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -48,7 +51,7 @@ export default function ChatPage() {
           />
           <button
             type="submit"
-            className="px-6 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"
+            className="px-6 py-2 rounded-lg bg-black text-white font-semibold hover:bg-gray-900 transition"
             disabled={loading || !input.trim()}
           >
             {loading ? "..." : "Send"}
