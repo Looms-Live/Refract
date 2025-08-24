@@ -1,6 +1,9 @@
-import React from 'react'
+"use client";
+import React from 'react';
+import { useRouter } from 'next/navigation';
 
 function Hero() {
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-white">
       {/* Grid Background*/}
@@ -20,14 +23,17 @@ function Hero() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
-            <button className="px-10 py-4 text-lg font-semibold text-white bg-black rounded-xl transition-colors shadow-lg">
-              Start Free Trial
+            <button
+              className="px-10 py-4 text-lg font-semibold text-white bg-black rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
+              onClick={() => router.push('/chat')}
+            >
+              Chat Now
             </button>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default Hero
+export default Hero;
