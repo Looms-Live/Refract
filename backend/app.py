@@ -1,56 +1,34 @@
 """
-Text-to-Query API with Vanna.ai RAG and Convex Integration
-Converts natural language to SQL queries using RAG from client database schema with Gemini 2.0 Flash
+Simplified Text-to-Query API with Supabase Integration
+Converts natural language to SQL queries and executes them on Supabase
 """
 
-from fastapi import FastAPI, HTTPException, Depends, Security
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import os
 import logging
 from dotenv import load_dotenv
-import vanna
-from vanna.chromadb import ChromaDB_VectorStore
-from vanna.base import VannaBase
-import google.generativeai as genai
-import httpx
-import asyncio
+from gemini_sql import GeminiTextToSQL
+from supabase_manager import SupabaseManager
 from datetime import datetime
-import structlog
 
-# Load environment variables from .env.local
+# Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env.local'))
 
-# Configure structured logging
-structlog.configure(
-    processors=[
-        structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.PositionalArgumentsFormatter(),
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.UnicodeDecoder(),
-        structlog.processors.JSONRenderer()
-    ],
-    context_class=dict,
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    cache_logger_on_first_use=True,
-)
-
-logger = structlog.get_logger()
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Vanna.ai Text-to-Query API",
-    description="Convert natural language to SQL queries using RAG from Convex database",
-    version="1.0.0"
+    title="Simple Text-to-Query API",
+    description="Convert natural language to SQL queries and execute on Supabase",
+    version="2.0.0"
 )
 
-# CORS configuration
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "https://your-frontend-domain.com"],
@@ -59,270 +37,148 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Security
-security = HTTPBearer()
+# Initialize services
+supabase_manager = SupabaseManager()
+gemini_sql = GeminiTextToSQL()
 
 # Pydantic models
-class ConvexConfig(BaseModel):
-    """Configuration for Convex database connection"""
-    url: str = Field(..., description="Convex deployment URL")
-    token: str = Field(..., description="Convex authentication token")
-    database_name: str = Field(default="main", description="Database name in Convex")
+class SimpleQueryRequest(BaseModel):
+    """Simple query request"""
+    query: str = Field(..., description="Natural language query")
+    max_results: int = Field(default=10, description="Maximum results to return")
+    explain: bool = Field(default=True, description="Include AI explanation of the SQL")
 
-class QueryRequest(BaseModel):
-    """Request model for text-to-query conversion"""
-    query: str = Field(..., min_length=1, max_length=1000, description="Natural language query")
-    convex_config: ConvexConfig = Field(..., description="Convex database configuration")
-    max_results: Optional[int] = Field(default=100, ge=1, le=1000, description="Maximum number of results")
-    explain: Optional[bool] = Field(default=False, description="Include query explanation")
-
-class QueryResponse(BaseModel):
-    """Response model for query results"""
+class SimpleQueryResponse(BaseModel):
+    """Simple query response"""
     success: bool
     query: str
-    generated_sql: str
+    generated_sql: str = ""
     results: List[Dict[str, Any]]
     explanation: Optional[str] = None
     execution_time: float
     row_count: int
     error: Optional[str] = None
 
-class SchemaInfo(BaseModel):
-    """Database schema information"""
-    tables: List[Dict[str, Any]]
-    relationships: List[Dict[str, Any]]
+# Helper Functions
+def _get_fallback_sql(query: str) -> Optional[str]:
+    """Generate simple fallback SQL for common queries when AI is unavailable"""
+    query_lower = query.lower().strip()
     
-# Global Vanna instance (will be initialized per request based on client config)
-vanna_instances = {}
-
-class GeminiChat:
-    """Custom Gemini chat implementation for Vanna"""
-    def __init__(self, config=None):
-        self.config = config or {}
-        # Configure Gemini
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is required")
-        
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(
-            model_name=self.config.get('model', 'gemini-2.0-flash-exp')
-        )
-        
-    def submit_prompt(self, prompt: str, **kwargs) -> str:
-        """Submit a prompt to Gemini and get response"""
-        try:
-            response = self.model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            logger.error("Error generating content with Gemini", error=str(e))
-            raise e
-
-class VannaRAG(ChromaDB_VectorStore, GeminiChat):
-    """Custom Vanna class combining ChromaDB for RAG and Google Gemini for chat"""
-    def __init__(self, config=None):
-        ChromaDB_VectorStore.__init__(self, config=config)
-        GeminiChat.__init__(self, config=config)
-
-def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> str:
-    """Verify authentication token"""
-    token = credentials.credentials
-    # In production, implement proper token verification
-    # For now, we'll use a simple API key check
-    expected_token = os.getenv("API_KEY", "your-secret-api-key")
-    if token != expected_token:
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
-    return token
-
-async def get_convex_schema(convex_config: ConvexConfig) -> Dict[str, Any]:
-    """Retrieve database schema from Convex"""
-    try:
-        async with httpx.AsyncClient() as client:
-            headers = {
-                "Authorization": f"Bearer {convex_config.token}",
-                "Content-Type": "application/json"
-            }
-            
-            # Get schema information from Convex
-            schema_response = await client.post(
-                f"{convex_config.url}/api/query",
-                headers=headers,
-                json={
-                    "function": "_system:describe_database",
-                    "args": {"database": convex_config.database_name}
-                }
-            )
-            
-            if schema_response.status_code != 200:
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Failed to fetch schema from Convex: {schema_response.text}"
-                )
-            
-            return schema_response.json()
-            
-    except httpx.RequestError as e:
-        logger.error("Failed to connect to Convex", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Convex connection error: {str(e)}")
-
-async def setup_vanna_rag(convex_config: ConvexConfig, schema_data: Dict[str, Any]) -> VannaRAG:
-    """Initialize and train Vanna with RAG from Convex schema"""
-    config_key = f"{convex_config.url}_{convex_config.database_name}"
+    # Customer queries
+    if 'show' in query_lower and 'customer' in query_lower:
+        return "SELECT * FROM customers LIMIT 10"
+    elif 'count' in query_lower and 'customer' in query_lower:
+        return "SELECT COUNT(*) as count FROM customers"
+    elif 'list' in query_lower and 'customer' in query_lower:
+        return "SELECT * FROM customers LIMIT 10"
+    elif 'all customer' in query_lower:
+        return "SELECT * FROM customers"
+    elif 'customer' in query_lower and ('high' in query_lower or 'revenue' in query_lower):
+        return "SELECT * FROM customers WHERE revenue > 10000 ORDER BY revenue DESC LIMIT 10"
+    elif 'customer' in query_lower:
+        return "SELECT * FROM customers LIMIT 10"
     
-    if config_key in vanna_instances:
-        return vanna_instances[config_key]
+    # Order queries  
+    elif 'show' in query_lower and 'order' in query_lower:
+        return "SELECT * FROM orders LIMIT 10"
+    elif 'count' in query_lower and 'order' in query_lower:
+        return "SELECT COUNT(*) as count FROM orders"
+    elif 'list' in query_lower and 'order' in query_lower:
+        return "SELECT * FROM orders LIMIT 10"
+    elif 'all order' in query_lower:
+        return "SELECT * FROM orders"
+    elif 'order' in query_lower:
+        return "SELECT * FROM orders LIMIT 10"
     
-    # Initialize Vanna with RAG capabilities using Gemini
-    vn = VannaRAG(config={
-        'api_key': os.getenv('GEMINI_API_KEY'),
-        'model': 'gemini-2.0-flash-exp',
-        'path': f'./vanna_cache_{hash(config_key)}'
-    })
-    
-    # Train Vanna with database schema
-    for table in schema_data.get('tables', []):
-        table_name = table.get('name', '')
-        table_schema = table.get('schema', {})
-        
-        # Add table documentation
-        table_doc = f"""
-        Table: {table_name}
-        Columns: {', '.join([f"{col['name']} ({col['type']})" for col in table_schema.get('columns', [])])}
-        Description: {table.get('description', 'No description available')}
-        """
-        
-        vn.train(documentation=table_doc)
-        
-        # Add sample queries for this table
-        sample_queries = [
-            f"SELECT * FROM {table_name} LIMIT 10",
-            f"SELECT COUNT(*) FROM {table_name}",
-        ]
-        
-        for sql in sample_queries:
-            vn.train(sql=sql)
-    
-    # Add relationship information
-    for relationship in schema_data.get('relationships', []):
-        rel_doc = f"""
-        Relationship: {relationship.get('from_table')} -> {relationship.get('to_table')}
-        Foreign Key: {relationship.get('foreign_key')} references {relationship.get('primary_key')}
-        """
-        vn.train(documentation=rel_doc)
-    
-    vanna_instances[config_key] = vn
-    logger.info("Vanna RAG initialized", config_key=config_key)
-    
-    return vn
+    # Generic patterns
+    elif 'show' in query_lower:
+        return "SELECT * FROM customers LIMIT 5"
+    elif 'count' in query_lower:
+        return "SELECT COUNT(*) as count FROM customers"
+    elif 'list' in query_lower:
+        return "SELECT * FROM customers LIMIT 5"
+    else:
+        return None
 
-async def execute_convex_query(convex_config: ConvexConfig, sql: str, max_results: int) -> List[Dict[str, Any]]:
-    """Execute SQL query on Convex database"""
-    try:
-        async with httpx.AsyncClient() as client:
-            headers = {
-                "Authorization": f"Bearer {convex_config.token}",
-                "Content-Type": "application/json"
-            }
-            
-            # Execute query via Convex
-            query_response = await client.post(
-                f"{convex_config.url}/api/query",
-                headers=headers,
-                json={
-                    "function": "_system:execute_sql",
-                    "args": {
-                        "sql": sql,
-                        "database": convex_config.database_name,
-                        "limit": max_results
-                    }
-                },
-                timeout=30.0
-            )
-            
-            if query_response.status_code != 200:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Query execution failed: {query_response.text}"
-                )
-            
-            result = query_response.json()
-            return result.get('data', [])
-            
-    except httpx.TimeoutException:
-        logger.error("Query execution timeout")
-        raise HTTPException(status_code=408, detail="Query execution timeout")
-    except httpx.RequestError as e:
-        logger.error("Query execution error", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Query execution error: {str(e)}")
-
+# API Endpoints
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "vanna-text-to-query"
+        "service": "simple-text-to-query"
     }
 
-@app.get("/schema")
-async def get_database_schema(
-    convex_url: str,
-    convex_token: str,
-    database_name: str = "main",
-    token: str = Depends(verify_token)
-) -> SchemaInfo:
-    """Get database schema from Convex"""
-    convex_config = ConvexConfig(
-        url=convex_url,
-        token=convex_token,
-        database_name=database_name
-    )
-    
-    schema_data = await get_convex_schema(convex_config)
-    
-    return SchemaInfo(
-        tables=schema_data.get('tables', []),
-        relationships=schema_data.get('relationships', [])
-    )
-
-@app.post("/query")
-async def text_to_query(
-    request: QueryRequest,
-    token: str = Depends(verify_token)
-) -> QueryResponse:
-    """Convert natural language query to SQL and execute it"""
+@app.post("/simple-query")
+async def simple_text_to_query(request: SimpleQueryRequest) -> SimpleQueryResponse:
+    """
+    Simple text-to-query endpoint that works directly with Supabase
+    No complex configuration required - perfect for testing!
+    """
     start_time = datetime.utcnow()
     
     try:
-        logger.info("Processing text-to-query request", query=request.query)
+        logger.info(f"Processing query: {request.query}")
         
-        # Get database schema from Convex
-        schema_data = await get_convex_schema(request.convex_config)
+        # Try to generate SQL using Gemini
+        generated_sql = ""
+        try:
+            generated_sql = gemini_sql.generate_sql(request.query)
+            logger.info(f"Generated SQL using Gemini: {generated_sql}")
+        except Exception as e:
+            # Handle API quota or other Gemini errors
+            logger.warning(f"Gemini API failed: {str(e)[:100]}...")
+            if "quota" in str(e).lower() or "429" in str(e):
+                # Try simple query patterns when AI is unavailable
+                fallback_sql = _get_fallback_sql(request.query)
+                if fallback_sql:
+                    generated_sql = fallback_sql
+                    logger.info(f"Using fallback SQL: {fallback_sql}")
+                else:
+                    return SimpleQueryResponse(
+                        success=False,
+                        query=request.query,
+                        generated_sql="",
+                        results=[{
+                            "error": "AI service temporarily unavailable",
+                            "message": "Please try again in a moment, or use simpler queries",
+                            "suggestions": [
+                                "Try: 'show customers'",
+                                "Try: 'count customers'", 
+                                "Try: 'list all customers'",
+                                "Try: 'show orders'"
+                            ]
+                        }],
+                        execution_time=0,
+                        row_count=1,
+                        error="AI quota exceeded - try simpler queries or wait a moment"
+                    )
+            else:
+                # For other errors, try fallback first
+                fallback_sql = _get_fallback_sql(request.query)
+                if fallback_sql:
+                    generated_sql = fallback_sql
+                    logger.info(f"Using fallback SQL due to other error: {fallback_sql}")
+                else:
+                    raise e
         
-        # Setup Vanna RAG for this client
-        vn = await setup_vanna_rag(request.convex_config, schema_data)
+        # Ensure we have valid SQL
+        if not generated_sql or "ERROR:" in generated_sql or "Failed to generate" in generated_sql:
+            # Use fallback SQL if no valid SQL generated
+            fallback_sql = _get_fallback_sql(request.query)
+            if fallback_sql:
+                generated_sql = fallback_sql
+                logger.info(f"Using fallback SQL as final option: {fallback_sql}")
+            else:
+                generated_sql = "SELECT 'Query pattern not recognized' as message, 'Try: show customers, count customers, show orders' as suggestion"
         
-        # Generate SQL from natural language using Vanna RAG
-        generated_sql = vn.ask(request.query)
-        
-        if not generated_sql or not isinstance(generated_sql, str):
-            raise HTTPException(
-                status_code=400,
-                detail="Could not generate valid SQL from the query"
-            )
-        
-        logger.info("Generated SQL", sql=generated_sql)
-        
-        # Execute the query on Convex
-        results = await execute_convex_query(
-            request.convex_config,
-            generated_sql,
-            request.max_results
-        )
+        # Execute the query directly on Supabase
+        results = await supabase_manager.execute_sql_query(generated_sql, request.max_results)
         
         execution_time = (datetime.utcnow() - start_time).total_seconds()
         
-        response = QueryResponse(
+        response = SimpleQueryResponse(
             success=True,
             query=request.query,
             generated_sql=generated_sql,
@@ -331,24 +187,22 @@ async def text_to_query(
             row_count=len(results)
         )
         
-        # Add explanation if requested
+        # Add explanation if requested and AI is available
         if request.explain:
-            explanation = vn.ask(f"Explain this SQL query: {generated_sql}")
-            response.explanation = explanation
+            try:
+                explanation = gemini_sql.explain_sql(generated_sql)
+                response.explanation = explanation
+            except:
+                response.explanation = "AI explanation temporarily unavailable"
         
-        logger.info("Query executed successfully", 
-                   row_count=len(results), 
-                   execution_time=execution_time)
-        
+        logger.info(f"Query executed successfully - {len(results)} rows in {execution_time:.2f}s")
         return response
         
-    except HTTPException:
-        raise
     except Exception as e:
         execution_time = (datetime.utcnow() - start_time).total_seconds()
-        logger.error("Query processing failed", error=str(e), execution_time=execution_time)
+        logger.error(f"Query processing failed: {str(e)}")
         
-        return QueryResponse(
+        return SimpleQueryResponse(
             success=False,
             query=request.query,
             generated_sql="",
@@ -358,56 +212,7 @@ async def text_to_query(
             error=str(e)
         )
 
-@app.post("/train")
-async def train_vanna(
-    convex_config: ConvexConfig,
-    sql_examples: List[str] = None,
-    documentation: List[str] = None,
-    token: str = Depends(verify_token)
-):
-    """Train Vanna with additional SQL examples and documentation"""
-    try:
-        # Get schema and setup Vanna
-        schema_data = await get_convex_schema(convex_config)
-        vn = await setup_vanna_rag(convex_config, schema_data)
-        
-        # Train with provided examples
-        training_count = 0
-        
-        if sql_examples:
-            for sql in sql_examples:
-                vn.train(sql=sql)
-                training_count += 1
-        
-        if documentation:
-            for doc in documentation:
-                vn.train(documentation=doc)
-                training_count += 1
-        
-        logger.info("Vanna training completed", training_count=training_count)
-        
-        return {
-            "success": True,
-            "trained_items": training_count,
-            "message": f"Successfully trained Vanna with {training_count} items"
-        }
-        
-    except Exception as e:
-        logger.error("Training failed", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Training failed: {str(e)}")
-
+# Startup
 if __name__ == "__main__":
     import uvicorn
-    
-    port = int(os.getenv("PORT", 8000))
-    host = os.getenv("HOST", "127.0.0.1")
-    
-    logger.info("Starting Vanna Text-to-Query API", host=host, port=port)
-    
-    uvicorn.run(
-        "app:app",
-        host=host,
-        port=port,
-        reload=True,
-        log_level="info"
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000)

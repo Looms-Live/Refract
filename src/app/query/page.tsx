@@ -42,7 +42,7 @@ export default function QueryPage() {
                 </div>
                 <h3 className="font-medium text-gray-900 mb-2">AI Converts to SQL</h3>
                 <p className="text-gray-600 text-sm">
-                  Vanna.ai understands your question and generates the appropriate SQL query.
+                  Our custom Gemini 2.0 Flash AI understands your question and generates the appropriate SQL query.
                 </p>
               </div>
               <div className="text-center">
