@@ -29,8 +29,6 @@ RefractAI is an analytics assistant that connects to remote company SQL database
 ---
 
 
-
-
 ## Architecture
 
 <div align="center">
