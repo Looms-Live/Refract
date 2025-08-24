@@ -1,4 +1,5 @@
 import React from 'react'
+import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs'
 
 interface FAQ {
   question: string
@@ -54,9 +55,18 @@ function FAQ() {
           <p className="text-black mb-6">
             Still have questions? We&apos;re here to help.
           </p>
-          <button className="px-8 py-3 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-lg transition-colors">
-            Contact Support
-          </button>
+          <SignedIn>
+            <button className="px-8 py-3 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-lg transition-colors">
+              Contact Support
+            </button>
+          </SignedIn>
+          <SignedOut>
+            <SignInButton>
+              <button className="px-8 py-3 bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-lg transition-colors">
+                Contact Support
+              </button>
+            </SignInButton>
+          </SignedOut>
         </div>
       </div>
     </section>

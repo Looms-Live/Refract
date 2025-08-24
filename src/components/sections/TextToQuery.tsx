@@ -113,13 +113,13 @@ const TextToQuery: React.FC = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="e.g., Show me customers with high revenue"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="flex-1 px-4 py-2 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-700 focus:border-teal-700"
             disabled={loading}
           />
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Processing...' : 'Ask'}
           </button>
@@ -134,7 +134,7 @@ const TextToQuery: React.FC = () => {
                 key={index}
                 type="button"
                 onClick={() => setQuery(example)}
-                className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                className="px-3 py-1 text-sm text-black bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
                 disabled={loading}
               >
                 {example}
@@ -163,7 +163,7 @@ const TextToQuery: React.FC = () => {
               {result.explanation && !result.explanation.includes('ERROR') && (
                 <div>
                   <h4 className="font-medium text-gray-700 mb-2">Explanation:</h4>
-                  <p className="text-gray-600 bg-blue-50 p-3 rounded-lg">{result.explanation}</p>
+                  <p className="text-gray-600 bg-teal-50 p-3 rounded-lg">{result.explanation}</p>
                 </div>
               )}
 
@@ -215,23 +215,23 @@ const TextToQuery: React.FC = () => {
       )}
 
       {/* Instructions */}
-      <div className="bg-blue-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-3">How to Use</h3>
-        <ol className="text-blue-800 space-y-2 list-decimal list-inside">
+      <div className="bg-teal-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-teal-900 mb-3">How to Use</h3>
+        <ol className="text-teal-800 space-y-2 list-decimal list-inside">
           <li>Type your question in plain English</li>
           <li>Click &quot;Ask&quot; to convert to SQL and get results</li>
           <li>Review the generated SQL and real database results</li>
         </ol>
         <div className="bg-white rounded-lg p-3 mt-3">
-          <p className="text-blue-700 text-sm mb-2">
+          <p className="text-teal-700 text-sm mb-2">
             <strong>Available Data:</strong>
           </p>
-          <div className="text-xs text-blue-600 space-y-1">
+          <div className="text-xs text-teal-600 space-y-1">
             <div><strong>customers</strong>: id, name, email, company, city, state, revenue, created_at</div>
             <div><strong>orders</strong>: id, customer_id, product_name, amount, status, order_date</div>
           </div>
         </div>
-        <p className="text-blue-700 mt-3 text-sm">
+        <p className="text-teal-700 mt-3 text-sm">
           <strong>Note:</strong> System uses AI when available, with smart fallbacks when API limits are reached.
         </p>
       </div>

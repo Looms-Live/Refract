@@ -1,6 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 
 function Navbar() {
   return (
@@ -21,9 +22,14 @@ function Navbar() {
 
       {/* Navigation Links - Hidden on mobile */}
       <div className="hidden md:flex items-center space-x-8">
-        <Link href="/query" className="text-gray-600 hover:text-gray-900 font-medium">
-          Text to Query
-        </Link>
+        <SignedIn>
+          <Link href="/query" className="text-gray-600 hover:text-gray-900 font-medium">
+            Text to Query
+          </Link>
+          <Link href="/chat" className="text-gray-600 hover:text-gray-900 font-medium">
+            Chat
+          </Link>
+        </SignedIn>
         <Link href="/labs" className="text-gray-600 hover:text-gray-900 font-medium">
           Blog
         </Link>
@@ -37,9 +43,16 @@ function Navbar() {
 
       {/* CTA Buttons */}
       <div className="flex items-center space-x-4">
-        <button className="px-6 py-2 text-sm font-medium text-white bg-black rounded-lg shadow-md transition-transform hover:scale-105 active:scale-95">
-          Sign In
-        </button>
+        <SignedOut>
+          <SignInButton>
+            <button className="px-6 py-2 text-sm font-medium text-white bg-black rounded-lg shadow-md transition-transform hover:scale-105 active:scale-95">
+              Sign In
+            </button>
+          </SignInButton>
+        </SignedOut>
+        <SignedIn>
+          <UserButton />
+        </SignedIn>
       </div>
     </nav>
   )

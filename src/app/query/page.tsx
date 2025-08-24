@@ -1,8 +1,15 @@
-import TextToQuery from '@/components/TextToQuery';
+import TextToQuery from '@/components/sections/TextToQuery';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
-export default function QueryPage() {
+export default async function QueryPage() {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    redirect('/sign-in');
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -23,13 +30,13 @@ export default function QueryPage() {
           </div>
 
           <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-4xl font-semibold text-gray-900 mb-4 text-center py-3">
               How It Works
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-blue-600 font-semibold">1</span>
+                  <span className="text-teal-700 font-semibold">1</span>
                 </div>
                 <h3 className="font-medium text-gray-900 mb-2">Ask Your Question</h3>
                 <p className="text-gray-600 text-sm">
@@ -38,16 +45,16 @@ export default function QueryPage() {
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-green-600 font-semibold">2</span>
+                  <span className="text-teal-700 font-semibold">2</span>
                 </div>
                 <h3 className="font-medium text-gray-900 mb-2">AI Converts to SQL</h3>
                 <p className="text-gray-600 text-sm">
-                  Our custom Gemini 2.0 Flash AI understands your question and generates the appropriate SQL query.
+                  The LLM understands your question and generates the appropriate SQL query.
                 </p>
               </div>
               <div className="text-center">
                 <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-purple-600 font-semibold">3</span>
+                  <span className="text-teal-700 font-semibold">3</span>
                 </div>
                 <h3 className="font-medium text-gray-900 mb-2">Get Results</h3>
                 <p className="text-gray-600 text-sm">
@@ -58,36 +65,38 @@ export default function QueryPage() {
           </div>
 
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-4xl font-semibold text-gray-900 mb-4 text-center py-3">
               Features
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                <div>
-                  <h3 className="font-medium text-gray-900">Natural Language Processing</h3>
-                  <p className="text-gray-600 text-sm">Ask questions in plain English without SQL knowledge.</p>
+            <div className="max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-teal-700 rounded-full mt-2"></div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Natural Language Processing</h3>
+                    <p className="text-gray-600 text-sm">Ask questions in plain English without SQL knowledge.</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <div>
-                  <h3 className="font-medium text-gray-900">Instant Results</h3>
-                  <p className="text-gray-600 text-sm">Get query results in seconds with clean table visualization.</p>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-teal-700 rounded-full mt-2"></div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Instant Results</h3>
+                    <p className="text-gray-600 text-sm">Get query results in seconds with clean table visualization.</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-                <div>
-                  <h3 className="font-medium text-gray-900">Database Schema View</h3>
-                  <p className="text-gray-600 text-sm">Explore your database structure to understand available data.</p>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-teal-700 rounded-full mt-2"></div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Database Schema View</h3>
+                    <p className="text-gray-600 text-sm">Explore your database structure to understand available data.</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-                <div>
-                  <h3 className="font-medium text-gray-900">Learning System</h3>
-                  <p className="text-gray-600 text-sm">The AI improves over time with more training data.</p>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-teal-700 rounded-full mt-2"></div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Learning System</h3>
+                    <p className="text-gray-600 text-sm">The AI improves over time with more training data.</p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,7 +1,11 @@
 
 
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
+import Navbar from "@/components/ui/Navbar";
+import Footer from "@/components/ui/Footer";
 
 type Message = {
   role: "user" | "assistant" | "system";
@@ -9,10 +13,17 @@ type Message = {
 };
 
 const ChatPage: React.FC = () => {
+  const { isLoaded, userId } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      redirect('/sign-in');
+    }
+  }, [isLoaded, userId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,9 +41,11 @@ const ChatPage: React.FC = () => {
   };
 
   return (
+    <>
+    <Navbar />
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-0 relative">
       {/* Grid Background */}
-      <div className="fixed inset-0 w-full h-full opacity-30 grid-background z-0"></div>
+      <div className="inset-0 w-full h-full"></div>
       {!hasStarted ? (
         <div className="w-full h-screen max-w-2xl flex items-center justify-center mx-auto relative z-10">
           <form onSubmit={handleSend} className="w-full flex flex-col items-center justify-center">
@@ -91,6 +104,8 @@ const ChatPage: React.FC = () => {
         </div>
       )}
     </div>
+    <Footer />
+    </>
   );
 };
 
