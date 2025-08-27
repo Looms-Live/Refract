@@ -31,7 +31,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://generativelanguage.googleapis.com", "https://your-frontend-domain.com"],
+    allow_origins=["https://refract.looms.live"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
