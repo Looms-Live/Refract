@@ -38,4 +38,11 @@ export default defineSchema({
     explanation: v.optional(v.string()),
     created_at: v.number(),
   }),
+
+  // Table to store users and their repository access scope
+  users: defineTable({
+    name: v.string(),
+    email: v.string(),
+    scope: v.optional(v.array(v.string())), // array of repo names/IDs, null for now
+  }),
 });
