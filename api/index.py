@@ -1,8 +1,6 @@
 """
-Simplified Text-to-Query API with Supabase Integration
-Converts natural language to SQL queries and executes them on Supabase
+Vercel API handler for FastAPI backend
 """
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -10,12 +8,10 @@ from typing import List, Dict, Any, Optional
 import os
 import logging
 from dotenv import load_dotenv
-from gemini_sql import GeminiTextToSQL
-from supabase_manager import SupabaseManager
 from datetime import datetime
 
 # Load environment variables
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env.local'))
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,13 +29,28 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://refract.looms.live",
-        "http://localhost:3000", #for development purpose
-        
+        "https://refract-backend.vercel.app",
+        "http://localhost:3000",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Import backend modules
+try:
+    from gemini_sql import GeminiTextToSQL
+    from supabase_manager import SupabaseManager
+except ImportError as e:
+    logger.error(f"Failed to import backend modules: {e}")
+    # Create dummy classes for now
+    class GeminiTextToSQL:
+        def generate_sql(self, query): return f"SELECT 'Error importing GeminiTextToSQL' as message"
+        def explain_sql(self, sql): return "Module import failed"
+    
+    class SupabaseManager:
+        async def execute_sql_query(self, sql, limit): 
+            return [{"error": "Failed to import SupabaseManager", "message": "Check backend dependencies"}]
 
 # Initialize services
 supabase_manager = SupabaseManager()
@@ -105,6 +116,16 @@ def _get_fallback_sql(query: str) -> Optional[str]:
         return None
 
 # API Endpoints
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "Text-to-Query API is running",
+        "endpoints": ["/health", "/query", "/simple-query"],
+        "version": "2.0.0",
+        "status": "active"
+    }
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -113,22 +134,6 @@ async def health_check():
         "timestamp": datetime.utcnow().isoformat(),
         "service": "simple-text-to-query"
     }
-
-@app.post("/simple-query")
-async def simple_text_to_query(request: SimpleQueryRequest) -> SimpleQueryResponse:
-    """
-    Simple text-to-query endpoint that works directly with Supabase
-    No complex configuration required - perfect for testing!
-    """
-    return await process_text_query(request)
-
-@app.post("/query")  # Adding the /query endpoint you mentioned
-async def text_to_query(request: SimpleQueryRequest) -> SimpleQueryResponse:
-    """
-    Text-to-query endpoint for generating SQL from natural language
-    and performing Supabase operations
-    """
-    return await process_text_query(request)
 
 async def process_text_query(request: SimpleQueryRequest) -> SimpleQueryResponse:
     """
@@ -230,7 +235,21 @@ async def process_text_query(request: SimpleQueryRequest) -> SimpleQueryResponse
             error=str(e)
         )
 
-# Startup
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.post("/simple-query")
+async def simple_text_to_query(request: SimpleQueryRequest) -> SimpleQueryResponse:
+    """
+    Simple text-to-query endpoint that works directly with Supabase
+    No complex configuration required - perfect for testing!
+    """
+    return await process_text_query(request)
+
+@app.post("/query")
+async def text_to_query(request: SimpleQueryRequest) -> SimpleQueryResponse:
+    """
+    Text-to-query endpoint for generating SQL from natural language
+    and performing Supabase operations
+    """
+    return await process_text_query(request)
+
+# This is the handler that Vercel will call
+handler = app
