@@ -28,10 +28,14 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS middleware
+# CORS middleware - Updated for Vercel deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://refract.looms.live"],
+    allow_origins=[
+        "https://refract.looms.live",
+        "http://localhost:3000", #for development purpose
+        
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -115,6 +119,20 @@ async def simple_text_to_query(request: SimpleQueryRequest) -> SimpleQueryRespon
     """
     Simple text-to-query endpoint that works directly with Supabase
     No complex configuration required - perfect for testing!
+    """
+    return await process_text_query(request)
+
+@app.post("/query")  # Adding the /query endpoint you mentioned
+async def text_to_query(request: SimpleQueryRequest) -> SimpleQueryResponse:
+    """
+    Text-to-query endpoint for generating SQL from natural language
+    and performing Supabase operations
+    """
+    return await process_text_query(request)
+
+async def process_text_query(request: SimpleQueryRequest) -> SimpleQueryResponse:
+    """
+    Process text-to-query logic for both endpoints
     """
     start_time = datetime.utcnow()
     
