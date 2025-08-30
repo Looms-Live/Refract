@@ -14,7 +14,7 @@ export const getCustomers = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("customers");
+    const query = ctx.db.query("customers");
     if (args.limit) {
       return await query.take(args.limit);
     }
@@ -28,7 +28,7 @@ export const getOrdersWithCustomers = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    let ordersQuery = ctx.db.query("orders");
+    const ordersQuery = ctx.db.query("orders");
     const orders = args.limit 
       ? await ordersQuery.take(args.limit)
       : await ordersQuery.collect();
@@ -166,5 +166,12 @@ export const addTrainingData = mutation({
 export const getTrainingData = query({
   handler: async (ctx) => {
     return await ctx.db.query("training_data").collect();
+  },
+});
+
+// Query to get all users
+export const getUsers = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("users").collect();
   },
 });

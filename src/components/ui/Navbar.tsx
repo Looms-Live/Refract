@@ -39,6 +39,9 @@ function Navbar() {
         <a href="/info/ethos" className="text-gray-600 hover:text-gray-900 font-medium">
           Our Mission
         </a>
+        <Link href="/admin" className="text-gray-600 hover:text-gray-900 font-medium">
+          Admin
+        </Link>
       </div>
 
       {/* CTA Buttons */}
